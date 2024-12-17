@@ -1,3 +1,6 @@
+I'll combine and reorganize all the content into a single, well-structured README. Here's how I'll merge them:
+
+```markdown
 # Google Docs Mail Merge Script
 
 ## Overview
@@ -16,7 +19,48 @@ This Google Apps Script automates the process of creating personalized documents
 - Access to Google Drive, Docs, and Sheets
 - Necessary permissions to create and modify documents
 
-## Setup
+## Google Apps Script Setup Instructions
+
+### Creating a New Apps Script Project
+
+1. **Open Google Sheets**
+   - Create or open the spreadsheet you want to use as your configuration file
+   - Click on `Extensions` in the top menu
+   - Select `Apps Script`
+
+2. **Set Up the Script Project**
+   - Delete any existing code in the default `Code.gs` file
+   - Copy and paste the entire script into the editor
+   - Click on the project name (default is "Untitled project") in the top left
+   - Rename it to something meaningful (e.g., "Docs Mail Merge Script")
+
+### Required Permissions
+
+When you first run the script, it will ask for the following permissions:
+- View and manage your Google Docs files
+- View and manage your Google Drive files
+- View and manage your Google Sheets files
+- Display and run third-party web content
+- See, edit, create, and delete your spreadsheets
+
+To authorize:
+1. Click `Run` (▶️) button or select `Run > Run function > onOpen`
+2. Click `Review Permissions` in the authorization dialog
+3. Choose your Google Account
+4. Click `Advanced` > `Go to [Your Project Name] (unsafe)`
+5. Click `Allow`
+
+### Testing the Installation
+
+1. **Refresh your spreadsheet**
+   - Close and reopen your spreadsheet, OR
+   - Refresh the browser page
+
+2. **Verify Menu Installation**
+   - You should see a new menu item "🗂 Merge and Dupe" in the top menu bar
+   - If you don't see it, run the `onOpen` function manually from the Apps Script editor
+
+## Configuration Setup
 
 ### 1. Configuration Spreadsheet
 Create a sheet named "Config" in your bound spreadsheet with the following columns:
@@ -53,6 +97,61 @@ Create a spreadsheet with matching column headers:
 1. Open Script Editor
 2. Run the `main()` function
 
+## Input/Output Examples
+
+### Configuration Sheet ("Config") Example
+
+#### Input
+Your configuration sheet should look like this:
+
+| FIRST_NAME | LAST_NAME | ADDRESS | EMAIL | DOCS_FILE_ID | SHEETS_FILE_ID |
+|------------|-----------|---------|-------|--------------|----------------|
+| [empty] | [empty] | [empty] | [empty] | 1abc...xyz | 2def...uvw |
+| [empty] | [empty] | [empty] | [empty] | 3ghi...rst | 4jkl...mno |
+
+Note: The FIRST_NAME, LAST_NAME, ADDRESS, and EMAIL columns in the Config sheet should be empty as they will be populated from the data source sheets.
+
+### Data Source Spreadsheet Example
+
+#### Input
+Your data source spreadsheet (referenced by SHEETS_FILE_ID) should look like this:
+
+| FIRST_NAME | LAST_NAME | ADDRESS | EMAIL |
+|------------|-----------|---------|-------|
+| John | Doe | 123 Main St, City, State 12345 | john.doe@email.com |
+| Jane | Smith | 456 Oak Ave, Town, State 67890 | jane.smith@email.com |
+| Bob | Johnson | 789 Pine Rd, Village, State 13579 | bob.johnson@email.com |
+
+### Template Document Example
+
+#### Input
+Your template document (referenced by DOCS_FILE_ID) might contain:
+```
+Dear {{FIRST_NAME}} {{LAST_NAME}},
+
+We're writing to confirm your address:
+{{ADDRESS}}
+
+We will send further correspondence to: {{EMAIL}}
+
+Best regards,
+[Your Company Name]
+```
+
+#### Output
+The script will generate individual documents that look like:
+```
+Dear John Doe,
+
+We're writing to confirm your address:
+123 Main St, City, State 12345
+
+We will send further correspondence to: john.doe@email.com
+
+Best regards,
+[Your Company Name]
+```
+
 ## Functions
 
 ### `getConfigData()`
@@ -73,106 +172,26 @@ Populates template with data and returns the new document ID.
 ### `main()`
 Main execution function that orchestrates the merge process.
 
-## Error Handling
-- The script includes logging for missing file IDs
-- Handles missing sheets and invalid data gracefully
-- Provides feedback through Logger
+## Troubleshooting
 
-## Limitations
-- Template must be a Google Doc
-- Data source must be a Google Sheet
-- Placeholders must match exact column names
-- Footer sections are optional
-
-## Contributing
-Feel free to submit issues and enhancement requests!
-
-
-# Input/Output Examples
-
-## Configuration Sheet ("Config") Example
-
-### Input
-Your configuration sheet should look like this:
-
-| FIRST_NAME | LAST_NAME | ADDRESS | EMAIL | DOCS_FILE_ID | SHEETS_FILE_ID |
-|------------|-----------|---------|-------|--------------|----------------|
-| [empty] | [empty] | [empty] | [empty] | 1abc...xyz | 2def...uvw |
-| [empty] | [empty] | [empty] | [empty] | 3ghi...rst | 4jkl...mno |
-
-Note: The FIRST_NAME, LAST_NAME, ADDRESS, and EMAIL columns in the Config sheet should be empty as they will be populated from the data source sheets.
-
-## Data Source Spreadsheet Example
-
-### Input
-Your data source spreadsheet (referenced by SHEETS_FILE_ID) should look like this:
-
-| FIRST_NAME | LAST_NAME | ADDRESS | EMAIL |
-|------------|-----------|---------|-------|
-| John | Doe | 123 Main St, City, State 12345 | john.doe@email.com |
-| Jane | Smith | 456 Oak Ave, Town, State 67890 | jane.smith@email.com |
-| Bob | Johnson | 789 Pine Rd, Village, State 13579 | bob.johnson@email.com |
-
-## Template Document Example
-
-### Input
-Your template document (referenced by DOCS_FILE_ID) might contain:
-
+### Menu Not Appearing
+```javascript
+function testOnOpen() {
+  onOpen();
+}
 ```
-Dear {{FIRST_NAME}} {{LAST_NAME}},
+- Add this function and run it from the script editor
+- Check the execution log for errors
 
-We're writing to confirm your address:
-{{ADDRESS}}
+### Permission Errors
+- Go to `View > Execution log` in Apps Script
+- Look for specific permission errors
+- Try running the script again and re-authorize
 
-We will send further correspondence to: {{EMAIL}}
-
-Best regards,
-[Your Company Name]
-```
-
-### Output
-The script will generate individual documents that look like:
-
-```
-Dear John Doe,
-
-We're writing to confirm your address:
-123 Main St, City, State 12345
-
-We will send further correspondence to: john.doe@email.com
-
-Best regards,
-[Your Company Name]
-```
-
-## Logger Output Example
-
-When the script runs successfully, you'll see logs like this:
-```
-Merged letter for John Doe: https://docs.google.com/document/d/[generated-id-1]/edit
-Merged letter for Jane Smith: https://docs.google.com/document/d/[generated-id-2]/edit
-Merged letter for Bob Johnson: https://docs.google.com/document/d/[generated-id-3]/edit
-```
-
-If there are errors, you might see:
-```
-DOCS_FILE_ID or SHEETS_FILE_ID is missing for row 2
-Error accessing SHEETS_FILE_ID 2def...uvw: File not found
-```
-
-## File Structure Example
-
-After running the script, your Google Drive will contain:
-```
-📁 [Original Location]
-├── 📄 Template Document
-├── 📊 Configuration Spreadsheet
-├── 📊 Data Source Spreadsheet
-└── 📁 Generated Documents
-    ├── 📄 John Doe
-    ├── 📄 Jane Smith
-    └── 📄 Bob Johnson
-```
+### Script Editor Shows Errors
+- Verify all code is copied correctly
+- Check for any missing closing braces or parentheses
+- Ensure no code was truncated during copying
 
 ## Important Notes
 
@@ -190,5 +209,14 @@ After running the script, your Google Drive will contain:
    - Must match exactly between Config sheet and data source sheets
    - Are case-sensitive
    - Should not contain spaces (use underscores instead)
-```
+
+## Limitations
+- Template must be a Google Doc
+- Data source must be a Google Sheet
+- Placeholders must match exact column names
+- Footer sections are optional
+
+## Contributing
+Feel free to submit issues and enhancement requests!
+
 
