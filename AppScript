@@ -1,0 +1,132 @@
+const SOURCE = "sheets"; // Set to "sheets" for configuration data from the bound spreadsheet
+
+// Column headers for data mapping, including DOCS_FILE_ID and SHEETS_FILE_ID
+const COLUMNS = ["FIRST_NAME", "LAST_NAME", "ADDRESS", "EMAIL", "DOCS_FILE_ID", "SHEETS_FILE_ID"];
+
+// Default data for merging
+const merge = {
+  FIRST_NAME: "",
+  LAST_NAME: "",
+  ADDRESS: "",
+  EMAIL: "",
+  DOCS_FILE_ID: "",
+  SHEETS_FILE_ID: ""
+};
+
+// Get data from the main configuration file (bound spreadsheet)
+function getConfigData() {
+  const boundSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Config"); // Assuming "Config" holds the configuration data
+  const data = boundSheet.getDataRange().getValues();
+  
+  // Map column indices based on the header row
+  const headers = data.shift(); // Remove header row and store it
+  const columnMapping = getColumnMapping(headers);
+  
+  return data.map(row => {
+    // Map row data to an object based on column headers
+    const mappedRow = {};
+    COLUMNS.forEach(column => {
+      mappedRow[column] = row[columnMapping[column]] || ""; // Default to empty if column not found
+    });
+    return mappedRow;
+  });
+}
+
+// Get the index of each column based on headers
+function getColumnMapping(headers) {
+  const mapping = {};
+  COLUMNS.forEach(column => {
+    mapping[column] = headers.indexOf(column);
+  });
+  return mapping;
+}
+
+// Get data from other spreadsheets dynamically based on SHEETS_FILE_ID
+function getSheetsData(sheetsFileId) {
+  try {
+    const sheet = SpreadsheetApp.openById(sheetsFileId).getSheetByName("Sheet1"); // Replace "Sheet1" if necessary
+    if (!sheet) {
+      Logger.log(`Sheet1 not found in spreadsheet with ID: ${sheetsFileId}`);
+      return [];
+    }
+    const data = sheet.getDataRange().getValues();
+    
+    // Map column indices based on the header row
+    const headers = data.shift();
+    const columnMapping = getColumnMapping(headers);
+    
+    // Map data rows based on column mapping
+    return data.map(row => {
+      const mappedRow = {};
+      COLUMNS.forEach(column => {
+        mappedRow[column] = row[columnMapping[column]] || ""; // Default to empty if column not found
+      });
+      return mappedRow;
+    });
+    
+  } catch (error) {
+    Logger.log(`Error accessing SHEETS_FILE_ID ${sheetsFileId}: ${error.message}`);
+    return [];
+  }
+}
+
+// Create a copy of the document template, populate it
+function copyTemplate(docFileId, firstName, lastName, emails) {
+  const templateFile = DriveApp.getFileById(docFileId);
+  const copiedFile = templateFile.makeCopy(`${firstName} ${lastName}`);
+  
+  return copiedFile.getId();
+}
+
+
+// Populate the template with data and return the ID of the merged document
+function mergeTemplate(mergeData) {
+  const copyId = copyTemplate(mergeData.DOCS_FILE_ID, mergeData.FIRST_NAME, mergeData.LAST_NAME); // Removed EMAIL
+  const doc = DocumentApp.openById(copyId);
+  const body = doc.getBody();
+  const footer = doc.getFooter(); // Access the footer section
+
+  // Replace placeholders in the body and footer
+  for (const [key, value] of Object.entries(mergeData)) {
+    if (key !== "DOCS_FILE_ID" && key !== "SHEETS_FILE_ID") {
+      body.replaceText(`{{${key.toUpperCase()}}}`, value || "");
+      if (footer) {
+        footer.replaceText(`{{${key.toUpperCase()}}}`, value || "");
+      }
+    }
+  }
+
+  doc.saveAndClose();
+  return copyId;
+}
+
+// Add a custom menu for easy access
+function onOpen() {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu('🗂 Merge and Dupe')
+      .addItem('📂 Merge and Dupe Sheets', 'main')
+      .addToUi();
+}
+
+// Main function to perform the mail merge based on the configuration file
+function main() {
+  const configData = getConfigData();
+
+  configData.forEach((mergeData, i) => {
+    if (mergeData.DOCS_FILE_ID && mergeData.SHEETS_FILE_ID) {
+      const rowData = getSheetsData(mergeData.SHEETS_FILE_ID);
+
+      rowData.forEach(innerRow => {
+        mergeData.FIRST_NAME = innerRow.FIRST_NAME;
+        mergeData.LAST_NAME = innerRow.LAST_NAME;
+        mergeData.ADDRESS = innerRow.ADDRESS;
+        mergeData.EMAIL = innerRow.EMAIL;
+
+        const copyId = mergeTemplate(mergeData);
+        Logger.log(`Merged letter for ${mergeData.FIRST_NAME} ${mergeData.LAST_NAME}: https://docs.google.com/document/d/${copyId}/edit`);
+      });
+    } else {
+      Logger.log(`DOCS_FILE_ID or SHEETS_FILE_ID is missing for row ${i + 1}`);
+    }
+  });
+}
