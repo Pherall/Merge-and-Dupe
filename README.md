@@ -1,6 +1,3 @@
-I'll combine and reorganize all the content into a single, well-structured README. Here's how I'll merge them:
-
-```markdown
 # Google Docs Mail Merge Script
 
 ## Overview
